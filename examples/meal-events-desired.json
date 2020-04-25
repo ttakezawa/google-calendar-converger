@@ -1,0 +1,14 @@
+[
+  {
+    "title": "meal:breakfast",
+    "description": "nice breakfast",
+    "start": "2021-04-30T08:15:00+09:00",
+    "end": "2021-04-30T09:00:00+09:00"
+  },
+  {
+    "title": "meal:dinner",
+    "description": "I'll have a dinner with my friends.",
+    "start": "2021-04-30T18:45:00+09:00",
+    "end": "2021-04-30T19:30:00+09:00"
+  }
+]

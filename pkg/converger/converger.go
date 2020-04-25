@@ -21,6 +21,26 @@ const (
 	scope               = calendar.CalendarReadonlyScope
 )
 
+func getService() *calendar.Service {
+	b, err := ioutil.ReadFile(credentialsFilePath)
+	if err != nil {
+		log.Fatalf("Unable to read client secret file: %v", err)
+	}
+
+	// If modifying these scopes, delete your previously saved token.json.
+	config, err := google.ConfigFromJSON(b, scope)
+	if err != nil {
+		log.Fatalf("Unable to parse client secret file to config: %v", err)
+	}
+	client := getClient(config)
+
+	srv, err := calendar.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+	return srv
+}
+
 // Retrieve a token, saves the token, then returns the generated client.
 func getClient(config *oauth2.Config) *http.Client {
 	// The file token.json stores the user's access and refresh tokens, and is
@@ -76,26 +96,17 @@ func saveToken(path string, token *oauth2.Token) {
 }
 
 func Run() {
-	b, err := ioutil.ReadFile(credentialsFilePath)
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
-	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	config, err := google.ConfigFromJSON(b, scope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-	client := getClient(config)
-
-	srv, err := calendar.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v", err)
-	}
+	srv := getService()
 
 	t := time.Now().Format(time.RFC3339)
-	events, err := srv.Events.List("primary").ShowDeleted(false).
-		SingleEvents(true).TimeMin(t).MaxResults(10).OrderBy("startTime").Do()
+	events, err := srv.Events.
+		List("primary").
+		ShowDeleted(false).
+		SingleEvents(true).
+		TimeMin(t).
+		MaxResults(10).
+		OrderBy("startTime").
+		Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}

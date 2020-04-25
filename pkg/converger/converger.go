@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
+	"google.golang.org/api/option"
 )
 
 const (
@@ -32,17 +32,22 @@ func getService() *calendar.Service {
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
-	client := getClient(config)
+	token := getToken(config)
 
-	srv, err := calendar.New(client)
+	ctx := context.Background()
+	srv, err := calendar.NewService(
+		ctx,
+		option.WithTokenSource(config.TokenSource(ctx, token)),
+		option.WithScopes(scope),
+	)
 	if err != nil {
 		log.Fatalf("Unable to retrieve Calendar client: %v", err)
 	}
 	return srv
 }
 
-// Retrieve a token, saves the token, then returns the generated client.
-func getClient(config *oauth2.Config) *http.Client {
+// Retrieve a token, saves the token, then returns the token.
+func getToken(config *oauth2.Config) *oauth2.Token {
 	// The file token.json stores the user's access and refresh tokens, and is
 	// created automatically when the authorization flow completes for the first
 	// time.
@@ -51,7 +56,7 @@ func getClient(config *oauth2.Config) *http.Client {
 		tok = getTokenFromWeb(config)
 		saveToken(tokenFilePath, tok)
 	}
-	return config.Client(context.Background(), tok)
+	return tok
 }
 
 // Request a token from the web, then returns the retrieved token.

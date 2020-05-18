@@ -80,9 +80,9 @@ func (c *Converger) Run(from time.Time, titlePrefixFilter string, desiredEvents 
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
 
-	var sourceEvents []*calendar.Event
-	for _, item := range results.Items {
-		start, err := time.Parse(time.RFC3339, item.Start.DateTime)
+	var filteredSourceEvents []*calendar.Event
+	for _, e := range results.Items {
+		start, err := time.Parse(time.RFC3339, e.Start.DateTime)
 		if err != nil {
 			log.Fatalf("Unable to parse 'start': %v", err)
 		}
@@ -90,24 +90,35 @@ func (c *Converger) Run(from time.Time, titlePrefixFilter string, desiredEvents 
 			// log.Fatalf("skip: %s", start.String())
 			continue
 		}
-		// item.Summary means title.
-		if !strings.HasPrefix(item.Summary, titlePrefixFilter) {
-			// log.Fatalf("skip: %s", item.Summary)
+		// e.Summary means title.
+		if !strings.HasPrefix(e.Summary, titlePrefixFilter) {
+			// log.Fatalf("skip: %s", e.Summary)
 			continue
 		}
-		sourceEvents = append(sourceEvents, item)
+		filteredSourceEvents = append(filteredSourceEvents, e)
 	}
 
-	sort.SliceStable(desiredEvents, func(i, j int) bool {
-		return desiredEvents[i].Start.Before(desiredEvents[j].Start)
+	var filteredDesiredEvents []*event.Event
+	for _, e := range desiredEvents {
+		if e.Start.Before(from) {
+			continue
+		}
+		if !strings.HasPrefix(e.Title, titlePrefixFilter) {
+			continue
+		}
+		filteredDesiredEvents = append(filteredDesiredEvents, e)
+	}
+
+	sort.SliceStable(filteredDesiredEvents, func(i, j int) bool {
+		return filteredDesiredEvents[i].Start.Before(filteredDesiredEvents[j].Start)
 	})
-	sort.SliceStable(sourceEvents, func(i, j int) bool {
-		cmp := strings.Compare(sourceEvents[i].Start.DateTime, sourceEvents[j].Start.DateTime)
+	sort.SliceStable(filteredSourceEvents, func(i, j int) bool {
+		cmp := strings.Compare(filteredSourceEvents[i].Start.DateTime, filteredSourceEvents[j].Start.DateTime)
 		return cmp < 0
 	})
 
-	c.deleteUndesiredEvents(desiredEvents, sourceEvents)
-	c.insertDesiredEvents(desiredEvents, sourceEvents)
+	c.deleteUndesiredEvents(filteredDesiredEvents, filteredSourceEvents)
+	c.insertDesiredEvents(filteredDesiredEvents, filteredSourceEvents)
 }
 
 func (c *Converger) deleteUndesiredEvents(desiredEvents []*event.Event, sourceEvents []*calendar.Event) {

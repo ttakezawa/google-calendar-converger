@@ -30,7 +30,7 @@ func main() {
 
 	events, err := event.Read(os.Stdin)
 	if err != nil {
-		log.Fatalf("%w", err)
+		log.Fatalf("%+v", err)
 	}
 
 	cv.Run(time.Now(), *titlePrefixFilter, events)
